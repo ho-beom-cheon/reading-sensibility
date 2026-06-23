@@ -17,6 +17,8 @@ import {
   type CreateCardState,
   type CreateCardStep
 } from "@/features/create-flow";
+import { mockOcrProvider } from "@/features/ocr";
+import { validateSelectedQuote, type OcrSentence } from "@/domain";
 
 const stepLabels: Record<CreateCardStep, string> = {
   upload: "업로드",
@@ -27,12 +29,6 @@ const stepLabels: Record<CreateCardStep, string> = {
   preview: "미리보기",
   done: "완료"
 };
-
-const mockSentences = [
-  "나는 내가 읽은 문장들이 내 하루의 온도를 바꾼다는 사실을 천천히 배웠다.",
-  "좋은 문장은 지나간 시간을 붙잡는 대신, 다시 걸어갈 수 있는 마음을 남긴다.",
-  "책장을 덮은 뒤에도 오래 남는 것은 줄거리보다 그 순간의 나 자신이었다."
-];
 
 const defaultTemplateId = activeCardTemplates[0]?.id ?? "quiet_margin_01";
 
@@ -62,7 +58,7 @@ type DraftForm = {
 };
 
 const initialDraft: DraftForm = {
-  selectedQuote: mockSentences[0],
+  selectedQuote: "",
   bookTitle: "작은 독서의 기록",
   author: "문장수집가",
   pageNumber: "42",
@@ -91,6 +87,8 @@ export function CreateFlowShell() {
     null
   );
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [ocrSentences, setOcrSentences] = useState<OcrSentence[]>([]);
+  const [isOcrCompleting, setIsOcrCompleting] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -148,6 +146,15 @@ export function CreateFlowShell() {
   }
 
   function goNext() {
+    if (flowState.step === "selectQuote") {
+      const issues = validateSelectedQuote(draft.selectedQuote);
+
+      if (issues.length > 0) {
+        setNotice(issues[0]?.message ?? "선택 문장을 확인해 주세요.");
+        return;
+      }
+    }
+
     if (flowState.step === "details") {
       if (!draft.bookTitle.trim() || !draft.author.trim()) {
         setNotice("책 제목과 저자를 입력해야 다음 단계로 이동할 수 있습니다.");
@@ -225,6 +232,59 @@ export function CreateFlowShell() {
     }
 
     goNext();
+  }
+
+  async function completeMockOcr() {
+    if (!uploadImage) {
+      setNotice("OCR mock을 실행할 이미지가 없습니다. 업로드 단계로 돌아가 주세요.");
+      return;
+    }
+
+    setIsOcrCompleting(true);
+
+    try {
+      const result = await mockOcrProvider.recognize({
+        fileName: uploadImage.name,
+        mimeType: uploadImage.type,
+        size: uploadImage.size,
+        language: "ko",
+        sourceType: "album"
+      });
+      const firstValidSentence =
+        result.sentences.find(
+          (sentence) =>
+            sentence.length <= READING_MOMENT_POLICY.quoteMaxLength
+        ) ?? result.sentences[0];
+
+      setOcrSentences(result.sentences);
+      updateDraft("selectedQuote", firstValidSentence?.text ?? "");
+      applyState(
+        patchCreateCardState(flowState, {
+          step: "selectQuote",
+          status: "quote_selecting",
+          mode: "ocr",
+          selectedQuote: firstValidSentence?.text ?? null,
+          lastErrorCode: null
+        }),
+        `${result.sentences.length}개 문장 후보를 만들었습니다. 전체 OCR 텍스트는 저장하지 않습니다.`
+      );
+    } finally {
+      setIsOcrCompleting(false);
+    }
+  }
+
+  function enterManualInput() {
+    setOcrSentences([]);
+    updateDraft("selectedQuote", "");
+    applyState(
+      patchCreateCardState(flowState, {
+        step: "selectQuote",
+        status: "quote_selecting",
+        mode: "manual",
+        selectedQuote: null
+      }),
+      "OCR 없이 직접 입력 경로로 이동했습니다."
+    );
   }
 
   function goBack() {
@@ -341,16 +401,7 @@ export function CreateFlowShell() {
               <button
                 className="button secondary"
                 type="button"
-                onClick={() =>
-                  applyState(
-                    patchCreateCardState(flowState, {
-                      step: "selectQuote",
-                      status: "quote_selecting",
-                      mode: "manual"
-                    }),
-                    "OCR 없이 직접 입력 경로로 이동했습니다."
-                  )
-                }
+                onClick={enterManualInput}
               >
                 직접 입력
               </button>
@@ -404,19 +455,27 @@ export function CreateFlowShell() {
                   <button
                     className="button secondary"
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
+                      setOcrSentences([]);
+                      updateDraft("selectedQuote", "");
                       runEvent(
                         "MANUAL_INPUT",
-                        "직접 입력 경로로 전환했습니다."
-                      )
-                    }
+                        "직접 입력 경로로 전환했습니다.",
+                        { selectedQuote: null }
+                      );
+                    }}
                   >
                     직접 입력으로 계속
                   </button>
                 </>
               ) : (
                 <>
-                  <button className="button" type="button" onClick={goNext}>
+                  <button
+                    className="button"
+                    type="button"
+                    disabled={isOcrCompleting}
+                    onClick={completeMockOcr}
+                  >
                     OCR 성공
                   </button>
                   <button
@@ -442,33 +501,48 @@ export function CreateFlowShell() {
               <p>문장 후보 중 하나를 선택하거나 120자 이내로 직접 수정합니다.</p>
             </div>
 
-            <div className="quote-candidates">
-              {mockSentences.map((sentence) => (
-                <button
-                  className={
-                    sentence === draft.selectedQuote
-                      ? "choice-button selected"
-                      : "choice-button"
-                  }
-                  key={sentence}
-                  type="button"
-                  onClick={() => updateDraft("selectedQuote", sentence)}
-                >
-                  {sentence}
-                </button>
-              ))}
-            </div>
+            {ocrSentences.length > 0 ? (
+              <div className="quote-candidates">
+                {ocrSentences.map((sentence) => (
+                  <button
+                    className={
+                      sentence.text === draft.selectedQuote
+                        ? "choice-button selected"
+                        : "choice-button"
+                    }
+                    key={sentence.id}
+                    type="button"
+                    onClick={() => updateDraft("selectedQuote", sentence.text)}
+                  >
+                    <span>{sentence.text}</span>
+                    <span className="candidate-meta">
+                      신뢰도 {Math.round(sentence.confidence * 100)}% ·{" "}
+                      {sentence.length}자
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="process-state">
+                <strong>직접 입력 모드</strong>
+                <span>OCR 후보 없이 저장할 문장을 직접 입력합니다.</span>
+              </div>
+            )}
 
             <label className="field">
               <span>선택 문장</span>
               <textarea
-                maxLength={READING_MOMENT_POLICY.quoteMaxLength}
                 value={draft.selectedQuote}
                 onChange={(event) =>
                   updateDraft("selectedQuote", event.target.value)
                 }
               />
             </label>
+            {validateSelectedQuote(draft.selectedQuote).length > 0 && (
+              <p className="form-error">
+                {validateSelectedQuote(draft.selectedQuote)[0]?.message}
+              </p>
+            )}
             <p className="field-hint">
               권장 100자, 최대 {READING_MOMENT_POLICY.quoteMaxLength}자 · 현재{" "}
               {draft.selectedQuote.length}자
@@ -481,7 +555,7 @@ export function CreateFlowShell() {
               <button
                 className="button"
                 type="button"
-                disabled={!draft.selectedQuote.trim()}
+                disabled={validateSelectedQuote(draft.selectedQuote).length > 0}
                 onClick={goNext}
               >
                 기록 입력
@@ -763,6 +837,7 @@ export function CreateFlowShell() {
                   setDraft(initialDraft);
                   setUploadImage(null);
                   setUploadError(null);
+                  setOcrSentences([]);
                   setDownloadReady(false);
                   setNotice("새 카드 흐름을 다시 시작합니다.");
                 }}

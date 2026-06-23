@@ -659,6 +659,12 @@ h3 {
   background: rgba(47, 111, 98, 0.1);
 }
 
+.candidate-meta {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .two-column {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
