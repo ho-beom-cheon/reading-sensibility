@@ -1,0 +1,11 @@
+﻿epic,issue,priority,depends_on,acceptance_criteria
+UI,HOME 화면 구현,P0,v0.3,CTA와 예시 카드가 표시된다
+UI,업로드 화면 구현,P0,v0.3,카메라/앨범/직접 입력이 가능하다
+OCR,OCR API 구현,P0,v0.5,문장 후보를 반환한다
+OCR,원본 이미지 삭제,P0,v0.8,OCR 후 원본 파일이 남지 않는다
+DATA,ReadingMoment 저장,P0,v0.4,private 상태로 저장된다
+AI,분위기 분류 API,P1,v0.6,moods와 confidence를 반환한다
+RECOMMEND,템플릿 추천 엔진,P1,v0.6,top 3 후보가 반환된다
+RENDER,PNG 렌더링,P0,v0.7,3개 비율 PNG가 생성된다
+LIBRARY,보관함 목록,P1,v0.4,사용자 카드 목록이 표시된다
+QA,E2E 테스트,P0,v0.9,정상 플로우가 통과한다
