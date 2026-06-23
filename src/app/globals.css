@@ -659,7 +659,8 @@ h3 {
   background: rgba(47, 111, 98, 0.1);
 }
 
-.candidate-meta {
+.candidate-meta,
+.recommendation-meta {
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;

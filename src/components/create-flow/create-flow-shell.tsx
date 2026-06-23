@@ -18,6 +18,11 @@ import {
   type CreateCardStep
 } from "@/features/create-flow";
 import { mockOcrProvider } from "@/features/ocr";
+import {
+  mockTemplateRecommendationProvider,
+  type TemplateRecommendationCandidate,
+  type TemplateRecommendationMode
+} from "@/features/template-recommendation";
 import { validateSelectedQuote, type OcrSentence } from "@/domain";
 
 const stepLabels: Record<CreateCardStep, string> = {
@@ -29,8 +34,6 @@ const stepLabels: Record<CreateCardStep, string> = {
   preview: "미리보기",
   done: "완료"
 };
-
-const defaultTemplateId = activeCardTemplates[0]?.id ?? "quiet_margin_01";
 
 const ratioClassNames: Record<CardRatio, string> = {
   "1:1": "ratio-square",
@@ -89,6 +92,13 @@ export function CreateFlowShell() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [ocrSentences, setOcrSentences] = useState<OcrSentence[]>([]);
   const [isOcrCompleting, setIsOcrCompleting] = useState(false);
+  const [templateRecommendations, setTemplateRecommendations] = useState<
+    TemplateRecommendationCandidate[]
+  >([]);
+  const [recommendationMode, setRecommendationMode] =
+    useState<TemplateRecommendationMode | null>(null);
+  const [isRecommendationCompleting, setIsRecommendationCompleting] =
+    useState(false);
 
   useEffect(() => {
     return () => {
@@ -100,17 +110,18 @@ export function CreateFlowShell() {
 
   const recommendedTemplates = useMemo(
     () =>
-      activeCardTemplates
-        .filter((template) => template.ratios.includes(draft.ratio))
-        .slice(0, 3),
-    [draft.ratio]
+      templateRecommendations.filter((candidate) =>
+        candidate.template.ratios.includes(draft.ratio)
+      ),
+    [draft.ratio, templateRecommendations]
   );
 
   const selectedTemplate =
     activeCardTemplates.find(
       (template) => template.id === flowState.selectedTemplateId
     ) ??
-    recommendedTemplates[0] ??
+    recommendedTemplates[0]?.template ??
+    activeCardTemplates.find((template) => template.ratios.includes(draft.ratio)) ??
     activeCardTemplates[0];
 
   function updateDraft<TField extends keyof DraftForm>(
@@ -165,6 +176,9 @@ export function CreateFlowShell() {
         setNotice("감상을 입력해야 카드에 개인 기록으로 남길 수 있습니다.");
         return;
       }
+
+      setTemplateRecommendations([]);
+      setRecommendationMode(null);
     }
 
     if (flowState.step === "preview" && flowState.status !== "preview_ready") {
@@ -307,16 +321,31 @@ export function CreateFlowShell() {
     applyState(patch ? patchCreateCardState(result.value, patch) : result.value, successNotice);
   }
 
-  function completeRecommendation(useFallback: boolean) {
-    const templateId = recommendedTemplates[0]?.id ?? defaultTemplateId;
+  async function completeRecommendation(useFallback: boolean) {
+    setIsRecommendationCompleting(true);
 
-    runEvent(
-      useFallback ? "AI_FAILED" : "TEMPLATE_RECOMMENDED",
-      useFallback
-        ? "AI 추천 실패 경로입니다. 기본 추천 목록으로 계속 진행합니다."
-        : "추천 템플릿 3개를 준비했습니다.",
-      { selectedTemplateId: templateId }
-    );
+    try {
+      const result = await mockTemplateRecommendationProvider.recommend({
+        selectedQuote: draft.selectedQuote,
+        reflection: draft.reflection,
+        bookTitle: draft.bookTitle,
+        author: draft.author,
+        ratio: draft.ratio,
+        forceFallback: useFallback
+      });
+      const templateId = result.candidates[0]?.template.id ?? null;
+
+      setTemplateRecommendations(result.candidates);
+      setRecommendationMode(result.mode);
+
+      runEvent(
+        result.fallbackUsed ? "AI_FAILED" : "TEMPLATE_RECOMMENDED",
+        createRecommendationNotice(result.candidates.length, result.mode),
+        { selectedTemplateId: templateId }
+      );
+    } finally {
+      setIsRecommendationCompleting(false);
+    }
   }
 
   function markPreviewReady() {
@@ -629,8 +658,8 @@ export function CreateFlowShell() {
               <p className="eyebrow">TEMPLATE_SELECT</p>
               <h2 id="templates-title">비율과 템플릿 선택</h2>
               <p>
-                AI 추천은 아직 mock입니다. 비율별로 사용 가능한 활성 템플릿을
-                선택합니다.
+                선택 문장과 감상을 기준으로 후보를 추리고, 비율별로 사용 가능한
+                템플릿을 선택합니다.
               </p>
             </div>
 
@@ -642,8 +671,14 @@ export function CreateFlowShell() {
                   type="button"
                   onClick={() => {
                     updateDraft("ratio", ratio);
+                    setTemplateRecommendations([]);
+                    setRecommendationMode(null);
                     setFlowState((current) =>
                       patchCreateCardState(current, {
+                        status:
+                          current.step === "templates"
+                            ? "template_recommending"
+                            : current.status,
                         selectedTemplateId: null
                       })
                     );
@@ -663,6 +698,7 @@ export function CreateFlowShell() {
                   <button
                     className="button"
                     type="button"
+                    disabled={isRecommendationCompleting}
                     onClick={() => completeRecommendation(false)}
                   >
                     추천 결과 보기
@@ -670,37 +706,60 @@ export function CreateFlowShell() {
                   <button
                     className="button secondary"
                     type="button"
+                    disabled={isRecommendationCompleting}
                     onClick={() => completeRecommendation(true)}
                   >
                     AI 실패 fallback
                   </button>
                 </div>
               </div>
-            ) : (
-              <div className="template-grid">
-                {recommendedTemplates.map((template) => (
-                  <button
-                    className={
-                      flowState.selectedTemplateId === template.id
-                        ? "template-option selected"
-                        : "template-option"
-                    }
-                    key={template.id}
-                    type="button"
-                    onClick={() =>
-                      setFlowState((current) =>
-                        patchCreateCardState(current, {
-                          selectedTemplateId: template.id
-                        })
-                      )
-                    }
-                  >
-                    <span className="template-swatch" aria-hidden="true" />
-                    <strong>{template.name}</strong>
-                    <span>{template.description}</span>
-                  </button>
-                ))}
+            ) : recommendedTemplates.length === 0 ? (
+              <div className="process-state error">
+                <strong>추천 후보 없음</strong>
+                <span>비율을 바꾸거나 문장을 줄인 뒤 다시 추천합니다.</span>
               </div>
+            ) : (
+              <>
+                <div className="template-grid">
+                  {recommendedTemplates.map((candidate) => {
+                    const { template } = candidate;
+
+                    return (
+                      <button
+                        className={
+                          flowState.selectedTemplateId === template.id
+                            ? "template-option selected"
+                            : "template-option"
+                        }
+                        key={template.id}
+                        type="button"
+                        onClick={() =>
+                          setFlowState((current) =>
+                            patchCreateCardState(current, {
+                              selectedTemplateId: template.id
+                            })
+                          )
+                        }
+                      >
+                        <span className="template-swatch" aria-hidden="true" />
+                        <strong>{template.name}</strong>
+                        <span>{template.description}</span>
+                        <span className="recommendation-meta">
+                          점수 {Math.round(candidate.score)} ·{" "}
+                          {candidate.reasons[0]}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {recommendationMode && (
+                  <p className="field-hint">
+                    {recommendationMode === "fallback"
+                      ? "기본 fallback 추천"
+                      : "mock 분류 추천"}
+                  </p>
+                )}
+              </>
             )}
 
             <div className="flow-actions">
@@ -898,6 +957,21 @@ export function CreateFlowShell() {
       </div>
     </section>
   );
+}
+
+function createRecommendationNotice(
+  candidateCount: number,
+  mode: TemplateRecommendationMode
+) {
+  if (candidateCount === 0) {
+    return "추천 후보가 없습니다. 비율이나 문장을 조정해 주세요.";
+  }
+
+  if (mode === "fallback") {
+    return "AI 추천 실패 경로입니다. 기본 추천 목록으로 계속 진행합니다.";
+  }
+
+  return `추천 템플릿 ${candidateCount}개를 준비했습니다.`;
 }
 
 function formatFileSize(bytes: number) {
