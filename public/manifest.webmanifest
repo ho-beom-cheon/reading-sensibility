@@ -1,0 +1,17 @@
+{
+  "name": "문장순간",
+  "short_name": "문장순간",
+  "description": "종이책의 짧은 문장을 개인 소장용 이미지 카드로 남기는 모바일 웹",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f2e8",
+  "theme_color": "#2f6f62",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

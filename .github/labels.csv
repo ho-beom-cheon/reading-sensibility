@@ -1,0 +1,13 @@
+name,color,description
+feature,1d76db,MVP 기능 구현
+bug,d73a4a,버그 또는 회귀
+docs,0075ca,문서 변경
+codex-task,5319e7,Codex 실행 대상 작업
+mvp,0e8a16,MVP 범위 내 작업
+security,b60205,보안/개인정보/저작권 위험
+api,fbca04,API 계약 변경
+ui,c5def5,화면/UI 변경
+rendering,bfd4f2,카드 렌더링
+ocr,fef2c0,OCR 관련
+ai,d4c5f9,AI 분류/추천 관련
+qa,0052cc,테스트/품질
