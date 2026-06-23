@@ -5,11 +5,12 @@
 ## 현재 상태
 
 - `munjang-sungan-codex-handoff-v0.1.zip` 기반 저장소 거버넌스 파일 반영
+- `munjang-sungan-design-v1.0.zip` 기반 설계 산출물 반영
 - TypeScript + React + Next.js App Router 스캐폴드 구성
 - 기본 라우트: `/`, `/create`, `/library`
 - 검증 스크립트: lint, typecheck, test
 
-설계 원본 패키지인 `docs/design/munjang-sungan-design-v1.0/`는 아직 저장소에 없습니다. 이후 OpenAPI, DB schema, template catalog 연동 작업 전에 해당 산출물을 추가해야 합니다.
+설계 원본 패키지는 `docs/design/munjang-sungan-design-v1.0/`에 있습니다. 이후 OpenAPI, DB schema, template catalog 연동 작업은 이 산출물을 기준으로 진행합니다.
 
 ## IntelliJ 실행
 

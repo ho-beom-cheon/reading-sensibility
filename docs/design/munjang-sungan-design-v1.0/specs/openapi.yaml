@@ -1,0 +1,247 @@
+openapi: 3.0.3
+info:
+  title: 문장순간 API
+  version: 1.0.0
+  description: OCR based reading moment card generation API.
+servers:
+  - url: https://api.example.com
+paths:
+  /api/ocr:
+    post:
+      summary: Upload book page image and extract OCR sentences
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                language:
+                  type: string
+                  enum: [ko, en, mixed]
+                sourceType:
+                  type: string
+                  enum: [camera, album]
+      responses:
+        '200':
+          description: OCR sentences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OcrResponse'
+        '422':
+          description: OCR failed
+  /api/theme/classify:
+    post:
+      summary: Classify mood/style tags from selected quote and reflection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThemeClassifyRequest'
+      responses:
+        '200':
+          description: Classification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThemeClassifyResponse'
+  /api/card-templates:
+    get:
+      summary: Get active card templates
+      parameters:
+        - name: ratio
+          in: query
+          schema: { type: string, enum: ['1:1', '4:5', '9:16'] }
+        - name: mood
+          in: query
+          schema: { type: string }
+        - name: genre
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Card templates
+  /api/card-templates/recommend:
+    post:
+      summary: Recommend top card templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendRequest'
+      responses:
+        '200':
+          description: Recommendations
+  /api/cards/render:
+    post:
+      summary: Render selected card as PNG
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CardRenderRequest'
+      responses:
+        '200':
+          description: Rendered card download URL
+  /api/cards/{cardId}/download:
+    get:
+      summary: Download rendered PNG
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: token
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: PNG file
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '410':
+          description: Download URL expired
+  /api/reading-moments:
+    post:
+      summary: Save private reading moment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReadingMomentCreateRequest'
+      responses:
+        '201':
+          description: Created reading moment
+    get:
+      summary: List user's reading moments
+      responses:
+        '200':
+          description: Reading moments
+  /api/reading-moments/{id}:
+    get:
+      summary: Get reading moment detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Reading moment detail
+    delete:
+      summary: Delete reading moment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204':
+          description: Deleted
+components:
+  schemas:
+    OcrSentence:
+      type: object
+      required: [id, text, confidence, length]
+      properties:
+        id: { type: string }
+        text: { type: string }
+        confidence: { type: number }
+        length: { type: integer }
+    OcrResponse:
+      type: object
+      properties:
+        ocrSessionId: { type: string }
+        expiresAt: { type: string, format: date-time }
+        sentences:
+          type: array
+          items: { $ref: '#/components/schemas/OcrSentence' }
+    ThemeClassifyRequest:
+      type: object
+      required: [selectedQuote, reflection]
+      properties:
+        bookTitle: { type: string, maxLength: 80 }
+        author: { type: string, maxLength: 50 }
+        genre: { type: string }
+        selectedQuote: { type: string, maxLength: 120 }
+        reflection: { type: string, maxLength: 150 }
+        preferredMood: { type: string }
+    ThemeClassifyResponse:
+      type: object
+      properties:
+        moods:
+          type: array
+          items: { type: string }
+        genreTone: { type: string }
+        visualKeywords:
+          type: array
+          items: { type: string }
+        recommendedTemplateTags:
+          type: array
+          items: { type: string }
+        cardTitleCandidates:
+          type: array
+          items: { type: string }
+        confidence: { type: number }
+    RecommendRequest:
+      type: object
+      required: [selectedQuote, moods, ratio]
+      properties:
+        selectedQuote: { type: string, maxLength: 120 }
+        reflection: { type: string, maxLength: 150 }
+        moods:
+          type: array
+          items: { type: string }
+        genre: { type: string }
+        ratio: { type: string, enum: ['1:1', '4:5', '9:16'] }
+        emphasis: { type: string, enum: [quote, reflection, date, source] }
+    CardRenderRequest:
+      type: object
+      required: [selectedQuote, reflection, source, templateId, ratio]
+      properties:
+        selectedQuote: { type: string, maxLength: 120 }
+        reflection: { type: string, maxLength: 150 }
+        source:
+          type: object
+          properties:
+            bookTitle: { type: string }
+            author: { type: string }
+            publisher: { type: string }
+            pageNumber: { type: string }
+            readAt: { type: string, format: date-time }
+        templateId: { type: string }
+        ratio: { type: string, enum: ['1:1', '4:5', '9:16'] }
+        renderOptions:
+          type: object
+    ReadingMomentCreateRequest:
+      type: object
+      required: [book, selectedQuote, reflection, readAt]
+      properties:
+        book:
+          type: object
+          required: [title, author]
+          properties:
+            title: { type: string }
+            author: { type: string }
+            publisher: { type: string }
+        selectedQuote: { type: string, maxLength: 120 }
+        reflection: { type: string, maxLength: 150 }
+        pageNumber: { type: string }
+        readAt: { type: string, format: date-time }
+        placeLabel: { type: string }
+        mood: { type: string }
+        genre: { type: string }
+        visibility: { type: string, enum: [private] }
