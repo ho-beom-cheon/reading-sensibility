@@ -1,0 +1,219 @@
+[
+  {
+    "id": "quiet_margin_01",
+    "name": "여백의 문장",
+    "description": "따뜻한 흰 종이와 넓은 여백, 얇은 명조 느낌",
+    "status": "active",
+    "moods": [
+      "차분함",
+      "위로",
+      "사색"
+    ],
+    "genres": [
+      "시",
+      "에세이",
+      "문학"
+    ],
+    "palette": "warm_white",
+    "layout": "center",
+    "textLength": [
+      "short",
+      "medium"
+    ],
+    "ratios": [
+      "1:1",
+      "4:5",
+      "9:16"
+    ],
+    "emphasis": [
+      "quote"
+    ],
+    "backgroundStyle": "paper",
+    "effects": [
+      "soft_grain"
+    ],
+    "renderConfig": {
+      "safeArea": {
+        "top": 96,
+        "right": 72,
+        "bottom": 96,
+        "left": 72
+      }
+    }
+  },
+  {
+    "id": "rainy_window_01",
+    "name": "비 오는 창가",
+    "description": "회청색 배경과 창가 느낌의 흐림 효과",
+    "status": "active",
+    "moods": [
+      "쓸쓸함",
+      "회상",
+      "위로"
+    ],
+    "genres": [
+      "소설",
+      "에세이",
+      "시"
+    ],
+    "palette": "gray_blue",
+    "layout": "bottom_left",
+    "textLength": [
+      "medium",
+      "long"
+    ],
+    "ratios": [
+      "1:1",
+      "4:5",
+      "9:16"
+    ],
+    "emphasis": [
+      "quote",
+      "reflection"
+    ],
+    "backgroundStyle": "photo_blur",
+    "effects": [
+      "rain",
+      "soft_grain"
+    ],
+    "renderConfig": {
+      "safeArea": {
+        "top": 120,
+        "right": 80,
+        "bottom": 120,
+        "left": 80
+      }
+    }
+  },
+  {
+    "id": "night_desk_01",
+    "name": "밤의 책상",
+    "description": "어두운 배경, 따뜻한 조명, 낮은 대비",
+    "status": "active",
+    "moods": [
+      "고독",
+      "몰입",
+      "사색"
+    ],
+    "genres": [
+      "인문",
+      "철학",
+      "문학"
+    ],
+    "palette": "dark_warm",
+    "layout": "lower_center",
+    "textLength": [
+      "short",
+      "medium"
+    ],
+    "ratios": [
+      "1:1",
+      "4:5",
+      "9:16"
+    ],
+    "emphasis": [
+      "quote"
+    ],
+    "backgroundStyle": "dark_gradient",
+    "effects": [
+      "warm_light",
+      "soft_shadow"
+    ],
+    "renderConfig": {
+      "safeArea": {
+        "top": 120,
+        "right": 88,
+        "bottom": 120,
+        "left": 88
+      }
+    }
+  },
+  {
+    "id": "library_card_01",
+    "name": "대출카드",
+    "description": "도서관 대출카드 스타일의 기록형 템플릿",
+    "status": "active",
+    "moods": [
+      "기록성",
+      "아카이브",
+      "차분함"
+    ],
+    "genres": [
+      "소설",
+      "시",
+      "에세이",
+      "인문",
+      "철학",
+      "역사",
+      "자기계발"
+    ],
+    "palette": "vintage_paper",
+    "layout": "form_grid",
+    "textLength": [
+      "short",
+      "medium",
+      "long"
+    ],
+    "ratios": [
+      "1:1",
+      "4:5"
+    ],
+    "emphasis": [
+      "date",
+      "source"
+    ],
+    "backgroundStyle": "library_card",
+    "effects": [
+      "paper_texture"
+    ],
+    "renderConfig": {
+      "safeArea": {
+        "top": 80,
+        "right": 64,
+        "bottom": 80,
+        "left": 64
+      }
+    }
+  },
+  {
+    "id": "bookmark_01",
+    "name": "책갈피",
+    "description": "잠금화면과 책갈피에 맞는 세로형 카드",
+    "status": "active",
+    "moods": [
+      "간직함",
+      "위로",
+      "사색"
+    ],
+    "genres": [
+      "시",
+      "에세이",
+      "문학"
+    ],
+    "palette": "soft_beige",
+    "layout": "vertical_center",
+    "textLength": [
+      "short",
+      "medium"
+    ],
+    "ratios": [
+      "9:16"
+    ],
+    "emphasis": [
+      "quote"
+    ],
+    "backgroundStyle": "bookmark",
+    "effects": [
+      "paper_texture",
+      "subtle_line"
+    ],
+    "renderConfig": {
+      "safeArea": {
+        "top": 160,
+        "right": 96,
+        "bottom": 160,
+        "left": 96
+      }
+    }
+  }
+]
