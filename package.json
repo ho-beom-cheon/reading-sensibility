@@ -1,0 +1,35 @@
+{
+  "name": "reading-sensibility",
+  "version": "0.1.0",
+  "private": true,
+  "description": "문장순간 모바일 웹/PWA 스캐폴드",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "verify": "npm run lint && npm run typecheck && npm test"
+  },
+  "engines": {
+    "node": ">=20.19.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "next": "16.2.9",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "overrides": {
+    "postcss": "8.5.15"
+  },
+  "devDependencies": {
+    "@types/node": "26.0.0",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.2.9",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}

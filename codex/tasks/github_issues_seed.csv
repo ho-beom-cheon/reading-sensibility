@@ -1,0 +1,11 @@
+milestone,title,labels,body
+D0,[D0] 저장소 부트스트랩: 설계 문서와 AGENTS.md 반영,"docs,codex-task,mvp",설계 산출물 v1.0을 docs/design 아래에 추가하고 Codex 작업 규칙을 루트 AGENTS.md에 반영한다.
+D1,[D1] 앱 스캐폴드와 기본 라우팅 구성,"feature,codex-task,mvp","모바일 웹/PWA 기본 앱, 홈/create/library route, lint/typecheck/test/CI를 구성한다."
+D2,[D2] 도메인 타입과 validation 정책 구현,"feature,codex-task,mvp","Book, ReadingMoment, CardTemplate, GeneratedCard, OcrSession 타입과 quote/reflection 길이 정책을 구현한다."
+D3,[D3] 생성 플로우 UI shell 구현,"ui,feature,codex-task,mvp",업로드→OCR→문장 선택→기록 입력→템플릿→미리보기 화면 흐름을 mock data로 구현한다.
+D4,[D4] OCR provider interface와 mock OCR 구현,"ocr,feature,codex-task,mvp","OCR provider 인터페이스, mock OCR 결과, 실패 fallback, 원본 이미지 미저장 정책을 구현한다."
+D5,[D5] 템플릿 catalog와 추천 엔진 구현,"feature,codex-task,mvp,ai",template_catalog 기반 textLength/mood/genre/ratio/emphasis 점수 계산과 top 3 추천을 구현한다.
+D6,[D6] 카드 미리보기와 렌더링 stub 구현,"rendering,ui,feature,codex-task,mvp","1:1, 4:5, 9:16 비율 preview와 PNG 다운로드 stub을 구현한다."
+D7,[D7] OpenAPI 기준 API route skeleton 구현,"api,feature,codex-task,mvp","/api/ocr, /api/theme/classify, /api/card-templates, /api/cards/render, /api/reading-moments skeleton을 구현한다."
+D8,[D8] private 보관함 저장/조회/삭제 구현,"feature,codex-task,mvp,security",ReadingMoment와 GeneratedCard 저장/조회/삭제를 private visibility 기준으로 구현한다.
+D9,[D9] MVP QA gate와 회귀 테스트 추가,"qa,codex-task,mvp","Happy path, OCR 실패, 장문 차단, 안내문구 노출, 추천/렌더링 edge case 테스트를 추가한다."
