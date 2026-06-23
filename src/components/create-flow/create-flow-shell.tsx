@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import {
   activeCardTemplates,
   READING_MOMENT_POLICY,
@@ -42,6 +42,16 @@ const ratioClassNames: Record<CardRatio, string> = {
   "9:16": "ratio-story"
 };
 
+const MAX_UPLOAD_FILE_BYTES = 10 * 1024 * 1024;
+const SUPPORTED_UPLOAD_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/heic",
+  "image/heif"
+] as const;
+const PREVIEWABLE_UPLOAD_TYPES = ["image/jpeg", "image/png"];
+const uploadAccept = SUPPORTED_UPLOAD_TYPES.join(",");
+
 type DraftForm = {
   selectedQuote: string;
   bookTitle: string;
@@ -60,6 +70,14 @@ const initialDraft: DraftForm = {
   ratio: "4:5"
 };
 
+type SelectedUploadImage = {
+  name: string;
+  size: number;
+  type: string;
+  previewUrl: string;
+  canPreview: boolean;
+};
+
 export function CreateFlowShell() {
   const [flowState, setFlowState] = useState<CreateCardState>(() =>
     patchCreateCardState(initialCreateCardState, {
@@ -69,6 +87,18 @@ export function CreateFlowShell() {
   const [draft, setDraft] = useState(initialDraft);
   const [notice, setNotice] = useState("샘플 데이터로 전체 흐름을 먼저 눌러볼 수 있습니다.");
   const [downloadReady, setDownloadReady] = useState(false);
+  const [uploadImage, setUploadImage] = useState<SelectedUploadImage | null>(
+    null
+  );
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (uploadImage?.previewUrl) {
+        URL.revokeObjectURL(uploadImage.previewUrl);
+      }
+    };
+  }, [uploadImage?.previewUrl]);
 
   const recommendedTemplates = useMemo(
     () =>
@@ -138,6 +168,65 @@ export function CreateFlowShell() {
     applyResult(nextCreateCardState(flowState), "다음 단계로 이동했습니다.");
   }
 
+  function validateUploadFile(file: File) {
+    if (!SUPPORTED_UPLOAD_TYPES.includes(file.type as (typeof SUPPORTED_UPLOAD_TYPES)[number])) {
+      return "JPG, PNG, HEIC 이미지만 사용할 수 있습니다.";
+    }
+
+    if (file.size > MAX_UPLOAD_FILE_BYTES) {
+      return "이미지 용량이 너무 큽니다. 10MB 이하 파일을 선택해 주세요.";
+    }
+
+    return null;
+  }
+
+  function handleUploadFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      setUploadImage(null);
+      setUploadError("이미지를 선택해 주세요.");
+      return;
+    }
+
+    const validationError = validateUploadFile(file);
+
+    if (validationError) {
+      setUploadImage(null);
+      setUploadError(validationError);
+      setNotice(validationError);
+      event.target.value = "";
+      return;
+    }
+
+    setUploadImage({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      previewUrl: URL.createObjectURL(file),
+      canPreview: PREVIEWABLE_UPLOAD_TYPES.includes(file.type)
+    });
+    setUploadError(null);
+    setNotice("선택한 이미지는 브라우저 임시 미리보기로만 표시합니다.");
+  }
+
+  function clearUploadImage() {
+    setUploadImage(null);
+    setUploadError(null);
+    setNotice("선택한 이미지를 해제했습니다.");
+  }
+
+  function startOcrFromUpload() {
+    if (!uploadImage) {
+      const message = "이미지를 선택해야 OCR mock을 시작할 수 있습니다.";
+      setUploadError(message);
+      setNotice(message);
+      return;
+    }
+
+    goNext();
+  }
+
   function goBack() {
     setFlowState((current) => previousCreateCardState(current));
     setNotice("이전 단계로 돌아왔습니다.");
@@ -183,24 +272,70 @@ export function CreateFlowShell() {
               <p className="eyebrow">CREATE_UPLOAD</p>
               <h2 id="upload-title">책 페이지 사진 준비</h2>
               <p>
-                실제 파일 업로드는 아직 연결하지 않고, 샘플 이미지 입력으로 OCR
-                흐름을 확인합니다.
+                로컬 이미지 파일을 선택하면 브라우저 임시 미리보기로만 표시하고
+                OCR mock 흐름으로 이어갑니다.
               </p>
             </div>
 
-            <div className="upload-dropzone" aria-label="샘플 업로드 영역">
-              <span className="upload-icon">IMG</span>
-              <strong>책 페이지 이미지 mock</strong>
-              <span>JPG, PNG 한 장 기준 UI shell</span>
+            <div
+              className={
+                uploadImage ? "upload-dropzone has-preview" : "upload-dropzone"
+              }
+              aria-label="이미지 파일 선택 영역"
+            >
+              <label className="file-picker">
+                <input
+                  accept={uploadAccept}
+                  aria-describedby="upload-help"
+                  type="file"
+                  onChange={handleUploadFileChange}
+                />
+                {uploadImage?.canPreview ? (
+                  <span
+                    aria-label="선택한 책 페이지 미리보기"
+                    className="upload-preview-image"
+                    role="img"
+                    style={{ backgroundImage: `url(${uploadImage.previewUrl})` }}
+                  />
+                ) : (
+                  <span className="upload-icon">IMG</span>
+                )}
+                <strong>
+                  {uploadImage ? uploadImage.name : "책 페이지 이미지 선택"}
+                </strong>
+                <span id="upload-help">JPG, PNG, HEIC · 최대 10MB · 한 장</span>
+              </label>
             </div>
+
+            {uploadImage && (
+              <div className="file-meta" aria-label="선택한 파일 정보">
+                <div>
+                  <strong>{uploadImage.name}</strong>
+                  <span>
+                    {formatFileSize(uploadImage.size)} · {uploadImage.type}
+                  </span>
+                </div>
+                <button className="text-button" type="button" onClick={clearUploadImage}>
+                  선택 해제
+                </button>
+              </div>
+            )}
+
+            {uploadError && <p className="form-error">{uploadError}</p>}
 
             <p className="privacy-note">
               원본 책 사진은 OCR 처리 후 저장하지 않습니다. 선택한 문구와 직접
-              입력한 기록만 저장됩니다.
+              입력한 기록만 저장됩니다. 현재 단계에서는 파일을 서버로 전송하지
+              않습니다.
             </p>
 
             <div className="flow-actions">
-              <button className="button" type="button" onClick={goNext}>
+              <button
+                className="button"
+                type="button"
+                disabled={!uploadImage || Boolean(uploadError)}
+                onClick={startOcrFromUpload}
+              >
                 OCR 시작
               </button>
               <button
@@ -626,6 +761,8 @@ export function CreateFlowShell() {
                     })
                   );
                   setDraft(initialDraft);
+                  setUploadImage(null);
+                  setUploadError(null);
                   setDownloadReady(false);
                   setNotice("새 카드 흐름을 다시 시작합니다.");
                 }}
@@ -686,6 +823,14 @@ export function CreateFlowShell() {
       </div>
     </section>
   );
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))}KB`;
+  }
+
+  return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
 }
 
 function renderPreviewCard(draft: DraftForm, templateName: string) {
